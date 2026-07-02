@@ -1,71 +1,49 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { BookOpen, Map, Sparkles } from "lucide-react";
 import { CodeModal } from "./components/CodeModal";
 import { ProgressPanel } from "./components/ProgressPanel";
 import { StageDetail } from "./components/StageDetail";
+import { VisualizerModal } from "./components/VisualizerModal";
 import { WorldMap } from "./components/WorldMap";
-import { allStages, worlds } from "./data/curriculum";
-import { loadProgress, resetProgress, saveProgress } from "./storage/progressStorage";
-import type { QuestProgress, Stage } from "./types";
-import { clearStage, getStageStatus } from "./utils/progress";
-
-function playTone(enabled: boolean, volume: number, frequency: number, duration = 0.12) {
-  if (!enabled) return;
-  const AudioContextClass = window.AudioContext ?? window.webkitAudioContext;
-  if (!AudioContextClass) return;
-
-  const context = new AudioContextClass();
-  const oscillator = context.createOscillator();
-  const gain = context.createGain();
-  oscillator.frequency.value = frequency;
-  oscillator.type = "triangle";
-  gain.gain.value = volume * 0.18;
-  oscillator.connect(gain);
-  gain.connect(context.destination);
-  oscillator.start();
-  gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + duration);
-  oscillator.stop(context.currentTime + duration);
-}
-
-declare global {
-  interface Window {
-    webkitAudioContext?: typeof AudioContext;
-  }
-}
+import { worlds } from "./data/curriculum";
+import { useAudioEngine } from "./hooks/useAudioEngine";
+import { useProgress } from "./hooks/useProgress";
+import type { Stage } from "./types";
+import { getStageStatus } from "./utils/progress";
 
 export default function App() {
-  const [progress, setProgress] = useState<QuestProgress>(() => loadProgress());
   const [codeStage, setCodeStage] = useState<Stage | null>(null);
-  const selectedStage = useMemo(
-    () => allStages.find((stage) => stage.id === progress.selectedStageId) ?? allStages[0],
-    [progress.selectedStageId],
-  );
-  const selectedStatus = getStageStatus(selectedStage, progress);
-
-  useEffect(() => {
-    saveProgress(progress);
-  }, [progress]);
-
-  function updateProgress(updater: (value: QuestProgress) => QuestProgress) {
-    setProgress((current) => updater(current));
-  }
+  const [visualStage, setVisualStage] = useState<Stage | null>(null);
+  const {
+    progress,
+    selectedStage,
+    selectedStatus,
+    selectStage,
+    markCleared,
+    setAudioEnabled,
+    setVolume,
+    reset,
+  } = useProgress();
+  const audio = useAudioEngine({ enabled: progress.audioEnabled, volume: progress.volume });
 
   function handleSelectStage(stage: Stage) {
     const status = getStageStatus(stage, progress);
-    playTone(progress.audioEnabled, progress.volume, status === "locked" ? 180 : 520, 0.08);
-    setProgress((current) => ({ ...current, selectedStageId: stage.id }));
+    if (status === "locked") audio.playLocked();
+    else audio.playSelect();
+    selectStage(stage);
   }
 
   function handleClear(stage: Stage) {
-    playTone(progress.audioEnabled, progress.volume, 740, 0.18);
-    window.setTimeout(() => playTone(progress.audioEnabled, progress.volume, 980, 0.18), 120);
-    updateProgress((current) => clearStage(current, stage));
+    audio.playClear();
+    markCleared(stage);
   }
 
-  function handleReset() {
-    resetProgress();
-    setProgress(loadProgress());
+  function handleAudioToggle() {
+    const nextEnabled = !progress.audioEnabled;
+    setAudioEnabled(nextEnabled);
+    if (nextEnabled) audio.startBgm(true);
+    else audio.stopBgm();
   }
 
   return (
@@ -95,9 +73,9 @@ export default function App() {
         <div className="sideColumn">
           <ProgressPanel
             progress={progress}
-            onAudioToggle={() => updateProgress((current) => ({ ...current, audioEnabled: !current.audioEnabled }))}
-            onVolumeChange={(volume) => updateProgress((current) => ({ ...current, volume }))}
-            onReset={handleReset}
+            onAudioToggle={handleAudioToggle}
+            onVolumeChange={setVolume}
+            onReset={reset}
           />
           <StageDetail
             stage={selectedStage}
@@ -105,6 +83,7 @@ export default function App() {
             progress={progress}
             onClear={handleClear}
             onOpenCode={setCodeStage}
+            onOpenVisualizer={setVisualStage}
           />
         </div>
       </div>
@@ -113,6 +92,11 @@ export default function App() {
         {codeStage && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <CodeModal stage={codeStage} onClose={() => setCodeStage(null)} />
+          </motion.div>
+        )}
+        {visualStage && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <VisualizerModal stage={visualStage} onClose={() => setVisualStage(null)} />
           </motion.div>
         )}
       </AnimatePresence>

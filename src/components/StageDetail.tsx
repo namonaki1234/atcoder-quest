@@ -1,4 +1,4 @@
-import { CheckCircle2, Code2, Lock, Trophy } from "lucide-react";
+import { CheckCircle2, Code2, Lock, Maximize2, Trophy } from "lucide-react";
 import { motion } from "framer-motion";
 import type { QuestProgress, Stage, StageStatus } from "../types";
 import { getStars } from "../utils/progress";
@@ -10,9 +10,10 @@ type Props = {
   progress: QuestProgress;
   onClear: (stage: Stage) => void;
   onOpenCode: (stage: Stage) => void;
+  onOpenVisualizer: (stage: Stage) => void;
 };
 
-export function StageDetail({ stage, status, progress, onClear, onOpenCode }: Props) {
+export function StageDetail({ stage, status, progress, onClear, onOpenCode, onOpenVisualizer }: Props) {
   const stars = progress.clearedStages[stage.id]?.stars ?? getStars(stage);
   const solvedPercent = stage.total === 0 ? 0 : Math.round((stage.solved / stage.total) * 1000) / 10;
 
@@ -45,9 +46,13 @@ export function StageDetail({ stage, status, progress, onClear, onOpenCode }: Pr
         </div>
       </div>
 
-      <Visualizer stage={stage} />
+      <Visualizer stage={stage} onExpand={() => onOpenVisualizer(stage)} />
 
       <div className="detailActions">
+        <button className="secondaryButton" type="button" onClick={() => onOpenVisualizer(stage)}>
+          <Maximize2 size={18} />
+          Visual
+        </button>
         <button className="secondaryButton" type="button" onClick={() => onOpenCode(stage)}>
           <Code2 size={18} />
           Code
