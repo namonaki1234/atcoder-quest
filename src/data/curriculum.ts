@@ -51,9 +51,129 @@ struct Fenwick {
     }
 };`;
 
+const setCode = `set<int> seen;
+for (int x : a) {
+    seen.insert(x);
+}
+if (seen.count(target)) {
+    cout << "found\\n";
+}
+
+// lower_bound: target 以上の最小要素
+auto it = seen.lower_bound(target);
+if (it != seen.end()) {
+    cout << *it << "\\n";
+}`;
+
+const mapCode = `map<string, int> freq;
+for (const string& s : words) {
+    freq[s]++;
+}
+
+for (auto [key, count] : freq) {
+    cout << key << " " << count << "\\n";
+}`;
+
+const stackCode = `vector<int> a = {3, 1, 4, 2, 5};
+stack<int> st;
+for (int i = 0; i < (int)a.size(); i++) {
+    while (!st.empty() && a[st.top()] <= a[i]) {
+        st.pop();
+    }
+    int previousGreater = st.empty() ? -1 : st.top();
+    st.push(i);
+}`;
+
+const queueCode = `queue<int> que;
+que.push(start);
+while (!que.empty()) {
+    int v = que.front();
+    que.pop();
+    // v を処理する
+}`;
+
+const priorityQueueCode = `priority_queue<pair<long long, int>, vector<pair<long long, int>>, greater<pair<long long, int>>> pq;
+pq.push({0, start});
+while (!pq.empty()) {
+    auto [cost, v] = pq.top();
+    pq.pop();
+    if (dist[v] < cost) continue;
+    for (auto [to, weight] : graph[v]) {
+        if (dist[to] <= cost + weight) continue;
+        dist[to] = cost + weight;
+        pq.push({dist[to], to});
+    }
+}`;
+
+const segmentTreeCode = `template<class T>
+struct SegmentTree {
+    int n = 1;
+    T identity;
+    vector<T> data;
+    SegmentTree(int size, T identity) : identity(identity) {
+        while (n < size) n <<= 1;
+        data.assign(2 * n, identity);
+    }
+    T op(T a, T b) { return max(a, b); }
+    void setValue(int index, T value) {
+        index += n;
+        data[index] = value;
+        while (index >>= 1) data[index] = op(data[index << 1], data[index << 1 | 1]);
+    }
+    T query(int left, int right) {
+        T resultLeft = identity, resultRight = identity;
+        for (left += n, right += n; left < right; left >>= 1, right >>= 1) {
+            if (left & 1) resultLeft = op(resultLeft, data[left++]);
+            if (right & 1) resultRight = op(data[--right], resultRight);
+        }
+        return op(resultLeft, resultRight);
+    }
+};`;
+
+const dfsCode = `vector<int> seen(n, 0);
+auto dfs = [&](auto self, int v) -> void {
+    seen[v] = 1;
+    for (int to : graph[v]) {
+        if (seen[to]) continue;
+        self(self, to);
+    }
+};
+dfs(dfs, start);`;
+
+const lisCode = `vector<int> dp;
+for (int x : a) {
+    auto it = lower_bound(dp.begin(), dp.end(), x);
+    if (it == dp.end()) dp.push_back(x);
+    else *it = x;
+}
+cout << dp.size() << "\\n";`;
+
+const sieveCode = `vector<bool> isPrime(n + 1, true);
+isPrime[0] = isPrime[1] = false;
+for (long long p = 2; p * p <= n; p++) {
+    if (!isPrime[p]) continue;
+    for (long long q = p * p; q <= n; q += p) {
+        isPrime[q] = false;
+    }
+}`;
+
+const greedyCode = `sort(items.begin(), items.end(), [](const Item& a, const Item& b) {
+    return a.deadline < b.deadline;
+});
+priority_queue<int> selected;
+long long time = 0;
+for (const Item& item : items) {
+    selected.push(item.cost);
+    time += item.cost;
+    if (time > item.deadline) {
+        time -= selected.top();
+        selected.pop();
+    }
+}`;
+
 const genericCode = (title: string) => `// ${title}
-// ここに典型コード、注意点、計算量を追記して育てていく想定です。
-// AtCoder Problems の問題リンクや自分用メモも stage データへ追加できます。`;
+// 計算量、典型制約、AtCoder Problems の問題リンクをここへ追記できます。
+// まずは「状態」「遷移」「答え」の 3 点をコメントに分けて書くと復習しやすいです。`;
 
 export const worlds: World[] = [
   {
@@ -62,15 +182,15 @@ export const worlds: World[] = [
     theme: "Forest Circuit",
     description: "集合、列、区間、優先順位を扱うための道具箱を集めるワールド。",
     stages: [
-      { id: "set", title: "集合（set）", solved: 0, total: 65, difficulty: "beginner", summary: "重複除去、存在判定、集合演算を安定して扱う。", code: genericCode("集合（set）") },
-      { id: "map", title: "連想配列（map・dict）", solved: 0, total: 45, difficulty: "beginner", summary: "頻度表、座標圧縮、状態管理の基本になるキーと値の管理。", unlockAfter: "set", code: genericCode("連想配列（map・dict）") },
+      { id: "set", title: "集合（set）", solved: 0, total: 65, difficulty: "beginner", summary: "重複除去、存在判定、集合演算を安定して扱う。", code: setCode },
+      { id: "map", title: "連想配列（map・dict）", solved: 0, total: 45, difficulty: "beginner", summary: "頻度表、座標圧縮、状態管理の基本になるキーと値の管理。", unlockAfter: "set", code: mapCode },
       { id: "sorted_set", title: "順序付き集合（set・SortedSet）", solved: 0, total: 44, difficulty: "intermediate", summary: "大小関係を保ったまま、近傍探索や順位を扱う。", unlockAfter: "map", code: genericCode("順序付き集合") },
       { id: "union_find", title: "Union-Find", solved: 2, total: 58, difficulty: "beginner", summary: "グループの併合と同一判定をほぼ定数時間で処理する。", unlockAfter: "sorted_set", code: unionFindCode },
       { id: "weighted_union_find", title: "ポテンシャル付き Union-Find", solved: 0, total: 7, difficulty: "advanced", summary: "差分制約を持つ集合を管理し、矛盾検出にも使う。", unlockAfter: "union_find", code: genericCode("ポテンシャル付き Union-Find") },
-      { id: "stack", title: "スタック（stack）", solved: 1, total: 37, difficulty: "beginner", summary: "直前の状態へ戻る処理、単調性、括弧列の土台。", unlockAfter: "union_find", code: genericCode("スタック") },
-      { id: "queue", title: "キュー（queue）", solved: 0, total: 10, difficulty: "beginner", summary: "先入れ先出しで探索やシミュレーションを自然に書く。", unlockAfter: "stack", code: genericCode("キュー") },
-      { id: "priority_queue", title: "優先度付きキュー", solved: 0, total: 45, difficulty: "intermediate", summary: "常に最大・最小の候補を取り出す貪欲法の主役。", unlockAfter: "queue", code: genericCode("優先度付きキュー") },
-      { id: "segment_tree", title: "セグメント木", solved: 0, total: 66, difficulty: "advanced", summary: "区間クエリと一点更新を高速にさばく王道データ構造。", unlockAfter: "priority_queue", code: genericCode("セグメント木") },
+      { id: "stack", title: "スタック（stack）", solved: 1, total: 37, difficulty: "beginner", summary: "直前の状態へ戻る処理、単調性、括弧列の土台。", unlockAfter: "union_find", code: stackCode },
+      { id: "queue", title: "キュー（queue）", solved: 0, total: 10, difficulty: "beginner", summary: "先入れ先出しで探索やシミュレーションを自然に書く。", unlockAfter: "stack", code: queueCode },
+      { id: "priority_queue", title: "優先度付きキュー", solved: 0, total: 45, difficulty: "intermediate", summary: "常に最大・最小の候補を取り出す貪欲法の主役。", unlockAfter: "queue", code: priorityQueueCode },
+      { id: "segment_tree", title: "セグメント木", solved: 0, total: 66, difficulty: "advanced", summary: "区間クエリと一点更新を高速にさばく王道データ構造。", unlockAfter: "priority_queue", code: segmentTreeCode },
       { id: "fenwick", title: "BIT / Fenwick 木", solved: 0, total: 39, difficulty: "intermediate", summary: "累積和の更新と取得を短い実装で高速化する。", unlockAfter: "segment_tree", code: fenwickCode },
       { id: "interval_set", title: "区間を set で管理するテク", solved: 0, total: 13, difficulty: "advanced", summary: "塗り替えや連続区間の分割・結合を管理する。", unlockAfter: "fenwick", code: genericCode("interval set") },
       { id: "doubling", title: "ダブリング", solved: 0, total: 18, difficulty: "intermediate", summary: "2 の冪ジャンプで遷移や祖先探索を高速化する。", unlockAfter: "interval_set", code: genericCode("ダブリング") },
@@ -95,7 +215,7 @@ export const worlds: World[] = [
     description: "状態を定義し、再利用できる小問題へ分解するワールド。",
     stages: [
       { id: "digit_dp", title: "桁 DP", solved: 0, total: 17, difficulty: "advanced", summary: "上限以下の数を桁ごとの状態として数え上げる。", code: genericCode("桁 DP") },
-      { id: "lis", title: "LIS", solved: 0, total: 10, difficulty: "intermediate", summary: "最長増加部分列を DP と二分探索で高速に求める。", unlockAfter: "digit_dp", code: genericCode("LIS") },
+      { id: "lis", title: "LIS", solved: 0, total: 10, difficulty: "intermediate", summary: "最長増加部分列を DP と二分探索で高速に求める。", unlockAfter: "digit_dp", code: lisCode },
     ],
   },
   {
@@ -105,7 +225,7 @@ export const worlds: World[] = [
     description: "頂点と辺で世界を表現し、到達性、距離、流れを攻略する。",
     stages: [
       { id: "graph_basic", title: "グラフの基礎", solved: 0, total: 11, difficulty: "beginner", summary: "隣接リスト、次数、連結性など表現の基本を固める。", code: genericCode("グラフの基礎") },
-      { id: "dfs", title: "深さ優先探索（DFS）", solved: 2, total: 60, difficulty: "beginner", summary: "奥へ進む探索で連結成分、木 DP、トポロジカル順序へつなげる。", unlockAfter: "graph_basic", code: genericCode("DFS") },
+      { id: "dfs", title: "深さ優先探索（DFS）", solved: 2, total: 60, difficulty: "beginner", summary: "奥へ進む探索で連結成分、木 DP、トポロジカル順序へつなげる。", unlockAfter: "graph_basic", code: dfsCode },
       { id: "bfs", title: "幅優先探索（BFS）", solved: 2, total: 78, difficulty: "beginner", summary: "辺重み 1 の最短距離や状態遷移を層ごとに探索する。", unlockAfter: "dfs", code: bfsCode },
       { id: "max_flow", title: "フロー：最大流・最小カット", solved: 0, total: 76, difficulty: "expert", summary: "容量制約つきネットワークの最大輸送量とカットを扱う。", unlockAfter: "bfs", code: genericCode("最大流・最小カット") },
       { id: "min_cost_flow", title: "フロー：最小費用流", solved: 0, total: 30, difficulty: "expert", summary: "流量に加えてコスト最小化を考える発展テーマ。", unlockAfter: "max_flow", code: genericCode("最小費用流") },
@@ -120,7 +240,7 @@ export const worlds: World[] = [
     stages: [
       { id: "integer_search", title: "整数系探索問題", solved: 0, total: 40, difficulty: "intermediate", summary: "制約と単調性を読み、探索範囲を絞る。", code: genericCode("整数系探索問題") },
       { id: "factorization", title: "素数判定・約数列挙・素因数分解", solved: 0, total: 30, difficulty: "beginner", summary: "約数と素因数の基本操作を O(sqrt N) から理解する。", unlockAfter: "integer_search", code: genericCode("素因数分解") },
-      { id: "sieve", title: "エラトステネスの篩", solved: 0, total: 14, difficulty: "beginner", summary: "多数の素数判定を前処理で高速化する。", unlockAfter: "factorization", code: genericCode("エラトステネスの篩") },
+      { id: "sieve", title: "エラトステネスの篩", solved: 0, total: 14, difficulty: "beginner", summary: "多数の素数判定を前処理で高速化する。", unlockAfter: "factorization", code: sieveCode },
       { id: "inclusion_exclusion", title: "包除原理", solved: 0, total: 33, difficulty: "advanced", summary: "重複を足し引きして条件を満たす個数を数える。", unlockAfter: "sieve", code: genericCode("包除原理") },
     ],
   },
@@ -130,7 +250,7 @@ export const worlds: World[] = [
     theme: "Greedy Harbor",
     description: "評価関数、交換 argument、辞書順など、最善手の理由を鍛える。",
     stages: [
-      { id: "greedy", title: "貪欲法", solved: 1, total: 145, difficulty: "intermediate", summary: "局所的な選択が全体最適になる条件を見抜く。", code: genericCode("貪欲法") },
+      { id: "greedy", title: "貪欲法", solved: 1, total: 145, difficulty: "intermediate", summary: "局所的な選択が全体最適になる条件を見抜く。", code: greedyCode },
       { id: "greedy_score", title: "貪欲法：評価関数", solved: 0, total: 23, difficulty: "advanced", summary: "何を比べればよいかを定式化する。", unlockAfter: "greedy", code: genericCode("評価関数") },
       { id: "greedy_exchange", title: "貪欲法：交換しても悪化しない", solved: 0, total: 41, difficulty: "advanced", summary: "交換しても損しないことから最適性を示す。", unlockAfter: "greedy_score", code: genericCode("交換 argument") },
       { id: "greedy_future", title: "貪欲法：後によいものを残す", solved: 1, total: 35, difficulty: "advanced", summary: "未来の選択肢を広く保つ戦略を選ぶ。", unlockAfter: "greedy_exchange", code: genericCode("後によいものを残す") },
